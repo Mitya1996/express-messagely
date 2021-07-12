@@ -11,12 +11,12 @@ class User {
 
   static async register({ username, password, first_name, last_name, phone }) {
     const result = await db.query(
-      `INSERT INTO messages (
+      `INSERT INTO users (
         username,
         password,
         first_name,
         last_name,
-        phone,)
+        phone)
           VALUES ($1, $2, $3, $4, $5)
           RETURNING username, password, first_name, last_name, phone`,
       [username, password, first_name, last_name, phone]
