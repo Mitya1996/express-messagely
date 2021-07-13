@@ -1,4 +1,7 @@
 const db = require("../db");
+const bcrypt = require("bcrypt");
+const { BCRYPT_WORK_FACTOR } = require("../config");
+const ExpressError = require("../expressError");
 
 /** User class for message.ly */
 
@@ -10,6 +13,7 @@ class User {
    */
 
   static async register({ username, password, first_name, last_name, phone }) {
+    let hashedPassword = await bcrypt.hash(password, BCRYPT_WORK_FACTOR);
     const result = await db.query(
       `INSERT INTO users (
         username,
@@ -19,7 +23,7 @@ class User {
         phone)
           VALUES ($1, $2, $3, $4, $5)
           RETURNING username, password, first_name, last_name, phone`,
-      [username, password, first_name, last_name, phone]
+      [username, hashedPassword, first_name, last_name, phone]
     );
 
     return result.rows[0];
@@ -28,14 +32,32 @@ class User {
   /** Authenticate: is this username/password valid? Returns boolean. */
 
   static async authenticate(username, password) {
-    const result = await db.query(`SELECT username, password FROM users`);
-    debugger;
-    console.log(result.rows[0]);
+    const result = await db.query(
+      `SELECT password FROM users WHERE username=$1`,
+      [username]
+    );
+    if (!result.rows[0]) return false; //if empty query return false
+    const { password: hashedPassword } = result.rows[0];
+    return await bcrypt.compare(password, hashedPassword);
   }
 
   /** Update last_login_at for user */
 
-  static async updateLoginTimestamp(username) {}
+  static async updateLoginTimestamp(username) {
+    const result = await db.query(
+      `UPDATE users
+         SET last_login_at = current_timestamp
+         WHERE username = $1
+         RETURNING username, last_login_at`,
+      [username]
+    );
+    debugger;
+    if (!result.rows[0]) {
+      throw new ExpressError(`No such user: ${username}`, 404);
+    }
+
+    return result.rows[0];
+  }
 
   /** All: basic info on all users:
    * [{username, first_name, last_name, phone}, ...] */
