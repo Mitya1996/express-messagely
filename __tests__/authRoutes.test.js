@@ -31,7 +31,8 @@ describe("Auth Routes Test", function () {
         phone: "+14150000000",
       });
 
-      let token = response.body.token;
+      let token = response.body;
+      debugger;
       expect(jwt.decode(token)).toEqual({
         username: "bob",
         iat: expect.any(Number),
@@ -47,7 +48,7 @@ describe("Auth Routes Test", function () {
         .post("/auth/login")
         .send({ username: "test1", password: "password" });
 
-      let token = response.body.token;
+      let token = response.body;
       expect(jwt.decode(token)).toEqual({
         username: "test1",
         iat: expect.any(Number),
